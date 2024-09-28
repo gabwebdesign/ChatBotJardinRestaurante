@@ -39,7 +39,7 @@ class GoogleSheetService {
       
       await sheet.loadCells("A1:H10");
       const rows = await sheet.getRows();
-      console.log("info desde google --- ",rows)
+      //console.log("info desde google --- ",rows)
       for (const a of Array.from(Array(rows.length).keys())) {
         const cellA1 = sheet.getCell(a + 1, dayNumber - 1);
         list.push(cellA1.value);

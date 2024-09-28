@@ -13,14 +13,20 @@ const googelSheet = new GoogleSheetService(
 );
 
 const GLOBAL_STATE = [];
+const pedido = [];
 
 const flowPrincipal = bot
-  .addKeyword(["hola", "hi"])
+  .addKeyword([
+    "hola", 
+    "hi",
+    "buenas",
+    "buenas dias",
+    "buenas días",
+    "buenas tardes",
+  ])
   .addAnswer([
-    `Bienvenidos a mi restaurante de cocina economica automatizado! 🚀`,
-    `Tenemos menus diarios variados`,
-    `Te gustaria conocerlos ¿?`,
-    `Escribe *menu*`,
+    `Bienvenidos a la soda El Jardín! 🧑‍🍳`,
+    `Si te gustaría conocer nuestro menú del día 😋 escribe: *menu*`,
   ]);
 
 const flowMenu = bot
@@ -31,7 +37,6 @@ const flowMenu = bot
     async (_, { flowDynamic }) => {
       const dayNumber = getDay(new Date());
       const getMenu = await googelSheet.retriveDayMenu(dayNumber);
-      console.log("-------- googelSheet", googelSheet)
       for (const menu of getMenu) {
         GLOBAL_STATE.push(menu);
         await flowDynamic(menu);
@@ -39,7 +44,7 @@ const flowMenu = bot
     }
   )
   .addAnswer(
-    `Te interesa alguno?`,
+    `¿Te interesa alguno?`,
     { capture: true },
     async (ctx, { gotoFlow, state }) => {
       const txt = ctx.body;
@@ -49,19 +54,18 @@ const flowMenu = bot
     ${GLOBAL_STATE.join("\n")}
     "
     El cliente quiere "${txt}"
-    Basado en el menu y lo que quiere el cliente determinar (EXISTE, NO_EXISTE).
-    La orden del cliente
+    Basado en el menu y lo que quiere el cliente determinar (EXISTE, NO_EXISTE), y si EXISTE
+    determine la orden del cliente y determine cuanto tiene que pagar (ademas de incluir impuesto 13%)
     `);
-
       const getCheck = check.data.choices[0].message.content
         .trim()
         .replace("\n", "")
         .replace(".", "")
         .replace(" ", "");
-
       if (getCheck.includes("NO_EXISTE")) {
         return gotoFlow(flowEmpty);
       } else {
+        pedido.push(check.data.choices[0].message.content.trim());
         state.update({pedido:ctx.body})
         return gotoFlow(flowPedido);
       }
@@ -70,12 +74,16 @@ const flowMenu = bot
 
 const flowEmpty = bot
   .addKeyword(bot.EVENTS.ACTION)
-  .addAnswer("No te he entendido!", null, async (_, { gotoFlow }) => {
+  .addAnswer("No tenemos eso por ahora!", null, async (_, { gotoFlow }) => {
     return gotoFlow(flowMenu);
   });
 
 const flowPedido = bot
-  .addKeyword(["pedir"], { sensitive: true })
+  .addKeyword('ver pedido')
+  .addAnswer("Por favor confirmar: " + String(pedido) + "Esta todo bien?",{ capture: true },
+    async (ctx, { state }) => {
+      state.update({ confirmacion: ctx.body });
+  })
   .addAnswer(
     "¿Cual es tu nombre?",
     { capture: true },
