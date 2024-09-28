@@ -15,7 +15,7 @@ const completion = async (dataIn = '') => {
     const response = await openai.createChatCompletion({
       model: 'gpt-3.5-turbo', // Use the chat model
       messages: [{ role: 'user', content: dataIn }], // Pass input as a message
-      max_tokens: 50, // Limit for the response
+      max_tokens: 250, // Limit for the response
       temperature: 0, // Control the randomness
     });
     return response

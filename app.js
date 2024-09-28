@@ -65,8 +65,10 @@ const flowMenu = bot
       if (getCheck.includes("NO_EXISTE")) {
         return gotoFlow(flowEmpty);
       } else {
-        pedido.push(check.data.choices[0].message.content.trim());
-        state.update({pedido:ctx.body})
+        // Store GPT response (order) in state
+        const pedidoResponse = check.data.choices[0].message.content.trim();
+        pedido.push(pedidoResponse)
+        await state.update({ pedido: pedidoResponse });
         return gotoFlow(flowPedido);
       }
     }
@@ -80,10 +82,19 @@ const flowEmpty = bot
 
 const flowPedido = bot
   .addKeyword('ver pedido')
-  .addAnswer("Por favor confirmar: " + String(pedido) + "Esta todo bien?",{ capture: true },
+  .addAnswer('', 
+    null, 
+    async (ctx, {flowDynamic}) => {
+    //const currentState = await state.getMyState();
+    await flowDynamic(pedido[0].replace("EXISTE",""))
+  })
+  .addAnswer(
+    "¿Está todo correcto?",
+    { capture: true },
     async (ctx, { state }) => {
       state.update({ confirmacion: ctx.body });
-  })
+    }
+  )
   .addAnswer(
     "¿Cual es tu nombre?",
     { capture: true },
