@@ -82,11 +82,14 @@ const flowEmpty = bot
 
 const flowPedido = bot
   .addKeyword('ver pedido')
-  .addAnswer('', 
-    null, 
+  .addAction(
     async (ctx, {flowDynamic}) => {
-    //const currentState = await state.getMyState();
-    await flowDynamic(pedido[0].replace("EXISTE",""))
+      console.log(pedido)
+      if (pedido.length > 0 && pedido[0]) {
+        await flowDynamic([{ body: pedido[0].replace("EXISTE", "") }]);
+      } else {
+        await flowDynamic([{ body: "No hay pedido disponible." }]);
+      }
   })
   .addAnswer(
     "¿Está todo correcto?",
