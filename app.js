@@ -86,7 +86,7 @@ const flowPedido = bot
     async (ctx, {flowDynamic}) => {
       console.log(pedido)
       if (pedido.length > 0 && pedido[0]) {
-        await flowDynamic([{ body: pedido[0].replace("EXISTE", "") }]);
+        await flowDynamic([{ body: `${pedido[0].replace("EXISTE\n","")} \n `}]);
       } else {
         await flowDynamic([{ body: "No hay pedido disponible." }]);
       }
@@ -98,11 +98,37 @@ const flowPedido = bot
       state.update({ confirmacion: ctx.body });
     }
   )
+  .addAction(
+    async (ctx, {state,flowDynamic,gotoFlow}) => {
+      const confirmation = state.getMyState().confirmacion;
+      const checkGTP = await chatgpt.completion(`
+      El cliente respondio ${confirmation}
+      Dado un input del cliente, indica si la respuesta es afirmativa. Responde solo con "afirmativa" o "no afirmativa".
+      `)
+      const getCheckGTP = checkGTP.data.choices[0].message.content
+        .trim()
+        .replace("\n", "")
+        .replace(".", "")
+      console.log(getCheckGTP)
+      if (getCheckGTP.includes("no afirmativa")) {
+        await flowDynamic([{ body: `Disculpa, te mostramos nuestro menu de nuevo!`}]);
+        return gotoFlow(flowMenu);
+      }else{
+        await flowDynamic([{ body: `Perfecto!`}]);
+      }
+  })
   .addAnswer(
     "¿Cual es tu nombre?",
     { capture: true },
     async (ctx, { state }) => {
       state.update({ name: ctx.body });
+    }
+  )  
+  .addAnswer(
+    "¿A donde te llevamos el pedido?",
+    { capture: true },
+    async (ctx, { state }) => {
+      state.update({ direccion: ctx.body });
     }
   )
   .addAnswer(
@@ -113,7 +139,7 @@ const flowPedido = bot
     }
   )
   .addAnswer(
-    "Perfecto tu pedido estara listo en un aprox 20min",
+    "Perfecto tu pedido estara listo pronto. Muchas gracias",
     null,
     async (ctx, { state }) => {
         const currentState = state.getMyState();
@@ -122,6 +148,7 @@ const flowPedido = bot
         telefono: ctx.from,
         pedido: currentState.pedido,
         nombre: currentState.name,
+        direccion: currentState.direccion,
         observaciones: currentState.observaciones,
       });
     }
