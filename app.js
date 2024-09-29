@@ -14,6 +14,7 @@ const googelSheet = new GoogleSheetService(
 
 const GLOBAL_STATE = [];
 const pedido = [];
+var tiempos = [];
 
 const flowPrincipal = bot
   .addKeyword([
@@ -35,7 +36,9 @@ const flowMenu = bot
     `Hoy tenemos el siguiente menu:`,
     null,
     async (_, { flowDynamic }) => {
-      const dayNumber = getDay(new Date());
+      let dayNumber = getDay(new Date());
+      // this line is to avoid error on sunday
+      if(dayNumber==0)dayNumber= 3;
       const getMenu = await googelSheet.retriveDayMenu(dayNumber);
       for (const menu of getMenu) {
         GLOBAL_STATE.push(menu);
@@ -84,7 +87,6 @@ const flowPedido = bot
   .addKeyword('ver pedido')
   .addAction(
     async (ctx, {flowDynamic}) => {
-      console.log(pedido)
       if (pedido.length > 0 && pedido[0]) {
         await flowDynamic([{ body: `${pedido[0].replace("EXISTE\n","")} \n `}]);
       } else {
@@ -123,7 +125,44 @@ const flowPedido = bot
     async (ctx, { state }) => {
       state.update({ name: ctx.body });
     }
-  )  
+  )
+  .addAction(    
+    async(_,{flowDynamic}) =>{
+      const getDates = await googelSheet.retriveDatesAvailable();
+      tiempos = getDates.join().replaceAll(",","\n");
+      await flowDynamic([{ body:tiempos}]);
+    }
+  )
+  .addAnswer(
+    '¿Cuál tiempo te sirve?',
+    { capture: true },
+    async (ctx, { state }) => {
+      state.update({ tiempo: ctx.body });
+    }
+  )
+  .addAction(
+    async (ctx, {state,flowDynamic,gotoFlow}) => {
+      const solicitud = state.getMyState().tiempo;
+      const checkGTP = await chatgpt.completion(`
+      los tiempos disponibles son:
+      "
+      ${tiempos}
+      "
+      El cliente respondio ${solicitud}
+      Dado un input del cliente, indica solo EXISTE, NO_EXISTE  y si  EXISTE indique cual es el valor correspondiente segun la lista.
+      const getCheckGTP = checkGTP.data.choices[0].message.content`)
+        .trim()
+        .replace("\n", "")
+        .replace(".", "")
+      console.log(getCheckGTP)
+      if (getCheckGTP.includes("EXISTE")) {
+        await flowDynamic([{ body: `De acuerdo!`}]);
+        //state.update({ fecha: ctx.body });
+      }else{
+        await flowDynamic([{ body: `Disculpa, ese tiempo no esta disponible!`}]);
+        return gotoFlow(flowPedido);
+      }
+  })
   .addAnswer(
     "¿A donde te llevamos el pedido?",
     { capture: true },
@@ -142,7 +181,7 @@ const flowPedido = bot
     "Perfecto tu pedido estara listo pronto. Muchas gracias",
     null,
     async (ctx, { state }) => {
-        const currentState = state.getMyState();
+      const currentState = state.getMyState();
       await googelSheet.saveOrder({
         fecha: new Date().toDateString(),
         telefono: ctx.from,

@@ -53,18 +53,46 @@ class GoogleSheetService {
   };
 
   /**
+   * Recuperar tiempos disponibles
+   * @returns
+   */
+
+  retriveDatesAvailable = async () => {
+    try {
+      const list = [];
+      const doc = await this.doc;
+      await this.doc.loadInfo();
+      const sheet = this.doc.sheetsByTitle["entrega"];
+      await sheet.loadCells("A1:B18");
+      const rows = await sheet.getRows();
+      for (let a = 1; a < 18; a++) {
+        const cell = sheet.getCell(a, 0); 
+        const cellColumnSecond = sheet.getCell(a, 1); 
+        const availability = cellColumnSecond.formattedValue;
+        const rawData = cell.formattedValue;
+        if(availability==null){
+          list.push(rawData); 
+        }
+      }
+      return list;
+    } catch (err) {
+      console.log(err);
+      return undefined;
+    }
+  };
+
+  /**
    * Guardar pedido
    * @param {*} data
    */
   saveOrder = async (data = {}) => {
     await this.doc.loadInfo();
     const sheet = this.doc.sheetsByIndex[1]; // the first sheet
-    console.log("sheet que pasa  ", this.doc)
     const order = await sheet.addRow({
       fecha: data.fecha,
       telefono: data.telefono,
       nombre: data.nombre,
-      pedido: data.pedido,
+      pedido: data.pedido.replace("EXISTE",'').replace("Orden del cliente:",""),
       observaciones: data.observaciones,
     });
 
