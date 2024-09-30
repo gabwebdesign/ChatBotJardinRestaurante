@@ -92,8 +92,10 @@ class GoogleSheetService {
       fecha: data.fecha,
       telefono: data.telefono,
       nombre: data.nombre,
-      pedido: data.pedido.replace("EXISTE",'').replace("Orden del cliente:",""),
+      pedido: data.pedido,
+      direccion:data.direccion,
       observaciones: data.observaciones,
+      entrega:data.entrega
     });
 
     return order

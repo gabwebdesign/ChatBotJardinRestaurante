@@ -88,7 +88,7 @@ const flowPedido = bot
   .addAction(
     async (ctx, {flowDynamic}) => {
       if (pedido.length > 0 && pedido[0]) {
-        await flowDynamic([{ body: `${pedido[0].replace("EXISTE\n","")} \n `}]);
+        await flowDynamic([{ body: `${pedido[0].replace("EXISTE\n","").replace("Orden del cliente:\n","")} \n `}]);
       } else {
         await flowDynamic([{ body: "No hay pedido disponible." }]);
       }
@@ -149,15 +149,15 @@ const flowPedido = bot
       ${tiempos}
       "
       El cliente respondio ${solicitud}
-      Dado un input del cliente, indica solo EXISTE, NO_EXISTE  y si  EXISTE indique cual es el valor correspondiente segun la lista.
-      const getCheckGTP = checkGTP.data.choices[0].message.content`)
+      Dado un input del cliente, indica solo EXISTE, NO_EXISTE  y si  EXISTE indique cual es el valor correspondiente segun la lista despues de un punto`) 
+      const getCheckGTP = checkGTP.data.choices[0].message.content
         .trim()
         .replace("\n", "")
-        .replace(".", "")
       console.log(getCheckGTP)
       if (getCheckGTP.includes("EXISTE")) {
         await flowDynamic([{ body: `De acuerdo!`}]);
-        //state.update({ fecha: ctx.body });
+        state.update({ entrega: getCheckGTP.split('.')[1] });
+        console.log(getCheckGTP.split('.')[1])
       }else{
         await flowDynamic([{ body: `Disculpa, ese tiempo no esta disponible!`}]);
         return gotoFlow(flowPedido);
@@ -178,7 +178,7 @@ const flowPedido = bot
     }
   )
   .addAnswer(
-    "Perfecto tu pedido estara listo pronto. Muchas gracias",
+    "Perfecto tu pedido estará listo pronto. Muchas gracias",
     null,
     async (ctx, { state }) => {
       const currentState = state.getMyState();
@@ -189,6 +189,7 @@ const flowPedido = bot
         nombre: currentState.name,
         direccion: currentState.direccion,
         observaciones: currentState.observaciones,
+        entrega:currentState.entrega
       });
     }
   );
